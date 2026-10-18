@@ -158,3 +158,15 @@
     --unity-cursor-color: #00ff00;
     --unity-selection-color: rgba(0, 255, 0, 0.35);
 }
+
+    /* Стили для отдельного процесса в списке */
+.process-item {
+    padding: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px dashed #004400;
+    cursor: pointer; /* Показывает руку при наведении */
+}
+
+.process-item:hover {
+    background-color: #003300; /* Подсветка при наведении */
+}
