@@ -170,3 +170,16 @@
 .process-item:hover {
     background-color: #003300; /* Подсветка при наведении */
 }
+
+/* Скрываем скроллбар, но оставляем прокрутку */
+#process-list {
+    overflow: scroll;
+}
+
+#process-list > .unity-scroll-view__vertical-scroller {
+    display: none;
+}
+
+#process-list > .unity-scroll-view__horizontal-scroller {
+    display: none;
+}
