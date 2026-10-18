@@ -40,7 +40,10 @@
             <!-- Подвал -->
             <ui:VisualElement name="footer" class="footer">
                 <ui:Label name="log-output" text="[00:00:00] System initialized..." class="log" />
-                <ui:TextField name="command-input" placeholder-text="Enter command..." class="command-input" />
+                <ui:VisualElement name="input-line" style="flex-direction: row; align-items: center; width: 100%; margin-top: 10px;">
+                    <ui:Label text="C:\PROMETHEUS>" style="color: #00ff00; font-size: 16px; height: 20px; margin: 0 5px 0 0; padding: 0; -unity-text-align: upper-left; flex-shrink: 0;" />
+                    <ui:TextField name="command-input" id="command-input" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

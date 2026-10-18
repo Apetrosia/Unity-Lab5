@@ -12,7 +12,6 @@
     justify-content: space-between;
     border-bottom-width: 2px;
     border-bottom-color: #00ff00;
-    border-bottom-style: solid;
     padding-bottom: 1%;
     margin-bottom: 1%;
 }
@@ -38,7 +37,6 @@
     flex: 1;
     border-width: 2px;
     border-color: #00ff00;
-    border-style: solid;
     padding: 1%;
     background-color: #0a0a0a;
     margin-right: 1%;
@@ -49,7 +47,6 @@
     flex: 1;
     border-width: 2px;
     border-color: #00ff00;
-    border-style: solid;
     padding: 1%;
     background-color: #0a0a0a;
     min-height: 0;
@@ -61,7 +58,6 @@
     color: #00cc00;
     border-bottom-width: 1px;
     border-bottom-color: #00ff00;
-    border-bottom-style: solid;
     padding-bottom: 0.5%;
 }
 
@@ -80,7 +76,6 @@
     background-color: #001100;
     border-width: 2px;
     border-color: #00ff00;
-    border-style: solid;
     margin-bottom: 1%;
 }
 
@@ -104,7 +99,6 @@
     flex-direction: column;
     border-top-width: 2px;
     border-top-color: #00ff00;
-    border-top-style: solid;
     padding-top: 1%;
     margin-top: 1%;
     height: 25%;
@@ -119,13 +113,48 @@
     overflow: hidden;
 }
 
-.command-input {
-    background-color: transparent;
+#command-input {
+    flex-grow: 1;
+    height: 20px;               /* высота строки, как у метки */
+    margin: 0;
+    padding: 0;
+    background-color: #000000;
+}
+
+#command-input > #unity-text-input {
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    background-color: #000000;
     border-width: 0;
-    border-bottom-width: 2px;
-    border-bottom-color: #00ff00;
-    border-bottom-style: solid;
+    border-radius: 0;
+    font-size: 16px;            /* как у метки "C:\PROMETHEUS>" */
     color: #00ff00;
-    font-size: 16px;
-    height: 30px;
+    -unity-text-align: upper-left;
+}
+
+#command-input .unity-text-element {
+    font-size: 16px;                  /* тот же размер, что у "C:\PROMETHEUS>" */
+    color: #00ff00;
+    background-color: rgba(0, 0, 0, 0);
+    height: 20px;                     /* фиксированна€ высота строки */
+    margin: 0;
+    padding: 0;
+    -unity-text-align: upper-left;
+}
+
+/* ‘окус и наведение, чтобы тема не перебивала цвета */
+#command-input:focus > #unity-text-input,
+#command-input:hover > #unity-text-input,
+#command-input > #unity-text-input:focus,
+#command-input > #unity-text-input:hover {
+    background-color: #000000;
+    border-width: 0;
+    color: #00ff00;
+}
+
+/* ÷вет курсора и выделени€ (работает как стиль USS в Unity 2022.1+) */
+#command-input {
+    --unity-cursor-color: #00ff00;
+    --unity-selection-color: rgba(0, 255, 0, 0.35);
 }
