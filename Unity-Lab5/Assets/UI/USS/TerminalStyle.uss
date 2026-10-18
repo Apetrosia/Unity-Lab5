@@ -1,0 +1,106 @@
+.screen {
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: #050505;
+    padding: 20px;
+    color: #00ff00;
+}
+
+.header {
+    flex-direction: row;
+    justify-content: space-between;
+    border-bottom-width: 2px;
+    border-bottom-color: #00ff00;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 20px;
+    color: #00ff00;
+}
+
+.status-text {
+    font-size: 20px;
+    color: #ff3333;
+}
+
+.main-content {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.panel {
+    flex: 1;
+    border-width: 1px;
+    border-color: #004400;
+    padding: 15px;
+    background-color: #0a0a0a;
+    margin-right: 20px;
+}
+
+.panel-title {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #00cc00;
+    border-bottom-width: 1px;
+    border-bottom-color: #004400;
+    padding-bottom: 5px;
+}
+
+.process-list {
+    flex-grow: 1;
+}
+
+.bar-container {
+    width: 100%;
+    height: 24px;
+    background-color: #001100;
+    border-width: 1px;
+    border-color: #00ff00;
+    margin-bottom: 5px;
+}
+
+.bar-fill {
+    width: 50%;
+    height: 100%;
+    background-color: #00ff00;
+}
+
+.bar-fill.upload {
+    background-color: #00aaff;
+}
+
+.bar-text {
+    font-size: 12px;
+    margin-bottom: 20px;
+    color: #00ff00;
+}
+
+.footer {
+    flex-direction: column;
+    border-top-width: 2px;
+    border-top-color: #00ff00;
+    padding-top: 15px;
+    margin-top: 20px;
+    height: 180px;
+}
+
+.log {
+    flex-grow: 1;
+    font-size: 14px;
+    color: #00ff00;
+    white-space: pre-wrap;
+    overflow: hidden;
+}
+
+.command-input {
+    background-color: transparent;
+    border-width: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: #00ff00;
+    color: #00ff00;
+    font-size: 16px;
+    height: 30px;
+}
