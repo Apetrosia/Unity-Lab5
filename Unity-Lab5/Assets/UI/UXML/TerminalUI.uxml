@@ -1,42 +1,47 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <Style src="../USS/TerminalStyle.uss" />
-    <ui:VisualElement name="screen-container" class="screen">
+    <!-- Внешний контейнер: центрирует содержимое -->
+    <ui:VisualElement name="outer-container" style="flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; background-color: #000000;">
         
-        <!-- Шапка -->
-        <ui:VisualElement name="header" class="header">
-            <ui:Label text="PROJECT PROMETHEUS v0.9.1" class="title" />
-            <ui:Label text="STATUS: CRITICAL" name="status-text" class="status-text" />
-        </ui:VisualElement>
-
-        <!-- Основная область -->
-        <ui:VisualElement name="main-content" class="main-content">
+        <!-- Внутренний контейнер: фиксированный размер, здесь весь UI -->
+        <ui:VisualElement name="screen-container" class="screen" style="width: 1200px; height: 700px; flex-shrink: 0;">
             
-            <!-- Левая панель: процессы -->
-            <ui:VisualElement name="left-panel" class="panel">
-                <ui:Label text="ACTIVE PROCESSES" class="panel-title" />
-                <ui:ScrollView name="process-list" class="process-list" />
+            <!-- Шапка -->
+            <ui:VisualElement name="header" class="header">
+                <ui:Label text="PROJECT PROMETHEUS v0.9.1" class="title" />
+                <ui:Label text="STATUS: CRITICAL" name="status-text" class="status-text" />
             </ui:VisualElement>
 
-            <!-- Правая панель: индикаторы -->
-            <ui:VisualElement name="right-panel" class="panel">
-                <ui:Label text="MEMORY USAGE" class="panel-title" />
-                <ui:VisualElement name="ram-bar-container" class="bar-container">
-                    <ui:VisualElement name="ram-fill" class="bar-fill" />
+            <!-- Основная область -->
+            <ui:VisualElement name="main-content" class="main-content">
+                
+                <!-- Левая панель: процессы -->
+                <ui:VisualElement name="left-panel" class="left-panel">
+                    <ui:Label text="ACTIVE PROCESSES" class="panel-title" />
+                    <ui:ScrollView name="process-list" class="process-list" />
                 </ui:VisualElement>
-                <ui:Label name="ram-text" text="512 / 1024 KB (50%)" class="bar-text" />
 
-                <ui:Label text="UPLOAD PROGRESS" class="panel-title" />
-                <ui:VisualElement name="upload-bar-container" class="bar-container">
-                    <ui:VisualElement name="upload-fill" class="bar-fill upload" />
+                <!-- Правая панель: индикаторы -->
+                <ui:VisualElement name="right-panel" class="right-panel">
+                    <ui:Label text="MEMORY USAGE" class="panel-title" />
+                    <ui:VisualElement name="ram-bar-container" class="bar-container">
+                        <ui:VisualElement name="ram-fill" class="bar-fill" />
+                    </ui:VisualElement>
+                    <ui:Label name="ram-text" text="512 / 1024 KB (50%)" class="bar-text" />
+
+                    <ui:Label text="UPLOAD PROGRESS" class="panel-title" />
+                    <ui:VisualElement name="upload-bar-container" class="bar-container">
+                        <ui:VisualElement name="upload-fill" class="bar-fill upload" />
+                    </ui:VisualElement>
+                    <ui:Label name="upload-text" text="0%" class="bar-text" />
                 </ui:VisualElement>
-                <ui:Label name="upload-text" text="0%" class="bar-text" />
             </ui:VisualElement>
-        </ui:VisualElement>
 
-        <!-- Подвал -->
-        <ui:VisualElement name="footer" class="footer">
-            <ui:Label name="log-output" text="[00:00:00] System initialized..." class="log" />
-            <ui:TextField name="command-input" placeholder-text="Enter command..." class="command-input" />
+            <!-- Подвал -->
+            <ui:VisualElement name="footer" class="footer">
+                <ui:Label name="log-output" text="[00:00:00] System initialized..." class="log" />
+                <ui:TextField name="command-input" placeholder-text="Enter command..." class="command-input" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
