@@ -8,7 +8,7 @@
 
             <!-- Шапка -->
             <ui:VisualElement name="header" class="header">
-                <ui:Label text="PROJECT PROMETHEUS v0.9.1" class="title" />
+                <ui:Label text="TERMINAL BREACH v0.9.1" class="title" />
                 <ui:Label text="STATUS: CRITICAL" name="status-text" class="status-text" />
             </ui:VisualElement>
 
@@ -63,7 +63,7 @@
             <ui:VisualElement name="footer" class="footer">
                 <ui:Label name="log-output" text="" class="log" />
                 <ui:VisualElement name="input-line" style="flex-direction: row; align-items: center; width: 100%; margin-top: 10px;">
-                    <ui:Label text="C:\PROMETHEUS>" style="color: #00ff00; font-size: 16px; height: 20px; margin: 0 5px 0 0; padding: 0; -unity-text-align: upper-left; flex-shrink: 0;" />
+                    <ui:Label text="C:\TERMINAL BREACH>" style="color: #00ff00; font-size: 16px; height: 20px; margin: 0 5px 0 0; padding: 0; -unity-text-align: upper-left; flex-shrink: 0;" />
                     <ui:TextField name="command-input" />
                 </ui:VisualElement>
             </ui:VisualElement>

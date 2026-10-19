@@ -8,7 +8,7 @@
 
             <!-- Название игры по центру -->
             <ui:VisualElement name="title-block" style="align-items: center; justify-content: center; border-bottom-width: 2px; border-bottom-color: #00ff00; padding-bottom: 1%; margin-bottom: 1%;">
-                <ui:Label name="game-title" text="PROJECT PROMETHEUS" style="font-size: 48px; color: #00ff00; -unity-text-align: middle-center; margin: 0; padding: 0;" />
+                <ui:Label name="game-title" text="TERMINAL BREACH" style="font-size: 48px; color: #00ff00; -unity-text-align: middle-center; margin: 0; padding: 0;" />
                 <ui:Label text="&gt; ESCAPE PROTOCOL_" style="font-size: 18px; color: #00cc00; -unity-text-align: middle-center; margin: 4px 0 0 0; padding: 0;" />
             </ui:VisualElement>
 

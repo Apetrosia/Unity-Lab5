@@ -192,6 +192,7 @@ public class GameManager : MonoBehaviour
     private VisualElement cpuFill, ramFill, uploadFill;
     private Label cpuText, ramText, uploadText, logOutput, statusText, jobsText;
     private ScrollView processList;
+    private Label cacheRamLabel;
     private TextField commandInput;
     private AudioSource audioSource;
     private string lastStatus = "";
@@ -236,6 +237,7 @@ public class GameManager : MonoBehaviour
         statusText = root.Q<Label>("status-text");
         processList = root.Q<ScrollView>("process-list");
         commandInput = root.Q<TextField>("command-input");
+        cacheRamLabel = root.Q<Label>("cache-ram-label");
 
         if (processList == null || commandInput == null)
         {
@@ -328,6 +330,13 @@ public class GameManager : MonoBehaviour
         {
             if (evt.keyCode == KeyCode.R)
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            Consume(evt);
+            return;
+        }
+
+        if (evt.keyCode == KeyCode.Escape)
+        {
+            SceneManager.LoadScene("intro");
             Consume(evt);
             return;
         }
@@ -689,15 +698,28 @@ public class GameManager : MonoBehaviour
         return s;
     }
 
-    void TickAlarms(float dt)
+        void TickAlarms(float dt)
     {
         float ramP = RamPercent;
         float cpuTotal = TotalCpu();
 
+        // ================== 1. ГЛИТЧ ЭКРАНА (реагирует и на RAM, и на CPU) ==================
         if (screenContainer != null)
         {
-            bool isCritical = ramP >= 85f || cpuTotal >= 90f;
-            if (isCritical && Random.value < 0.2f)
+            float glitchProbability = 0f;
+            
+            // Сильный глитч при высокой нагрузке (RAM >= 85% ИЛИ CPU >= 85%)
+            if (ramP >= 85f || cpuTotal >= 85f)
+            {
+                glitchProbability = 0.25f; // 25% шанс мерцания каждый кадр
+            }
+            // Слабый глитч при средней нагрузке (RAM >= 70% ИЛИ CPU >= 70%)
+            else if (ramP >= 70f || cpuTotal >= 70f)
+            {
+                glitchProbability = 0.05f; // 5% шанс мерцания каждый кадр
+            }
+
+            if (glitchProbability > 0f && Random.value < glitchProbability)
             {
                 screenContainer.style.opacity = 0.65f;
             }
@@ -707,27 +729,31 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        if (ramP >= 85f && !ramCritical)
+        // ================== 2. СТАТУС И ЦВЕТ (реагирует и на RAM, и на CPU) ==================
+        if (ramP >= 85f || cpuTotal >= 85f)
         {
-            ramCritical = true;
-            Log("WARNING: MEMORY CRITICAL!");
+            if (!ramCritical) 
+            {
+                ramCritical = true;
+                Log("WARNING: SYSTEM LOAD CRITICAL (RAM or CPU)!");
+            }
+            SetStatus("STATUS: CRITICAL", new Color(1f, 0.2f, 0.2f)); // Красный
         }
-        else if (ramP < 83f) ramCritical = false;
-
-        if (ramP >= 85f || cpuTotal >= 90f)
+        else if (ramP >= 70f || cpuTotal >= 70f || cpuOverloaded)
         {
-            SetStatus("STATUS: CRITICAL", new Color(1f, 0.2f, 0.2f));
-        }
-        else if (ramP >= 70f || cpuOverloaded)
-        {
-            SetStatus("STATUS: WARNING", new Color(1f, 1f, 0f));
+            ramCritical = false;
+            SetStatus("STATUS: WARNING", new Color(1f, 1f, 0f)); // Желтый
         }
         else
         {
-            SetStatus("STATUS: STABLE", new Color(0f, 1f, 0f));
+            ramCritical = false;
+            SetStatus("STATUS: STABLE", new Color(0f, 1f, 0f)); // Зеленый
         }
 
-        float period = ramP >= 95f ? 1f : (ramP >= 85f ? 1.5f : 0f);
+        // ================== 3. ЗВУКОВОЙ СИГНАЛ (пищалка) ==================
+        // Срабатывает чаще при экстремальной нагрузке (>= 95%), реже при высокой (>= 85%)
+        float period = (ramP >= 95f || cpuTotal >= 95f) ? 1f : ((ramP >= 85f || cpuTotal >= 85f) ? 1.5f : 0f);
+        
         if (period > 0f)
         {
             beepTimer += dt;
@@ -737,7 +763,10 @@ public class GameManager : MonoBehaviour
                 Sfx(beepClip);
             }
         }
-        else beepTimer = 0f;
+        else 
+        {
+            beepTimer = 0f;
+        }
     }
 
     void SetStatus(string text, Color color)
@@ -1297,6 +1326,7 @@ public class GameManager : MonoBehaviour
 
         if (uploadFill != null) uploadFill.style.width = Length.Percent(uploadProgress);
         if (uploadText != null) uploadText.text = $"{(int)uploadProgress}%";
+        if (cacheRamLabel != null) cacheRamLabel.text = $"{(ramCache / RamMax * 100f):F1}%";
     }
 
     void UpdateJobsPanel()
