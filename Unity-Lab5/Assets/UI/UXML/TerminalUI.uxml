@@ -27,6 +27,14 @@
                     </ui:VisualElement>
 
                     <ui:ScrollView name="process-list" class="process-list" />
+
+                    <!-- Строка кэша (не процесс, не убивается) -->
+                    <ui:VisualElement name="cache-row" class="process-item process-item--cache">
+                        <ui:Label text="-" class="process-label col-id" />
+                        <ui:Label text="SYSTEM_CACHE" class="process-label col-name" />
+                        <ui:Label text="-" class="process-label col-cpu" />
+                        <ui:Label name="cache-ram-label" text="0.0%" class="process-label col-ram" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
                 <!-- Правая панель: индикаторы -->

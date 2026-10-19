@@ -89,7 +89,7 @@ public class GameManager : MonoBehaviour
     // ================== НАСТРОЙКИ (инспектор) ==================
     [Header("Спавн угроз")]
     [SerializeField] private Vector2 spawnIntervalRange = new Vector2(45f, 60f);
-    [SerializeField] private float firstSpawnDelay = 45f;
+    [SerializeField] private float firstSpawnDelay = 20f;                          // первая угроза появится через 20 с
     [SerializeField] private int maxThreatsCap = 6;                                // БЫЛО 8, СТАЛО 6
     [Tooltip("Если включено, новые угрозы появляются в случайном месте списка")]
     [SerializeField] private bool randomInsert = false;
@@ -130,6 +130,7 @@ public class GameManager : MonoBehaviour
     private bool initialized = false;
     private bool kernelLoaded = false;
     private bool ramCritical = false;
+    private bool firstThreatSpawned = false;
     private float elapsed = 0f;
     private int level = 0;
     private int threatsKilled = 0;
@@ -157,6 +158,7 @@ public class GameManager : MonoBehaviour
     private VisualElement root, screenContainer, rightPanel, endScreen;
     private VisualElement cpuFill, ramFill, uploadFill;
     private Label cpuText, ramText, uploadText, logOutput, statusText, jobsText;
+    private Label cacheRamLabel;
     private ScrollView processList;
     private TextField commandInput;
     private AudioSource audioSource;
@@ -200,6 +202,7 @@ public class GameManager : MonoBehaviour
         statusText = root.Q<Label>("status-text");
         processList = root.Q<ScrollView>("process-list");
         commandInput = root.Q<TextField>("command-input");
+        cacheRamLabel = root.Q<Label>("cache-ram-label");
 
         if (processList == null || commandInput == null)
         {
@@ -226,10 +229,9 @@ public class GameManager : MonoBehaviour
         AddProcess(DefCore);
         AddProcess(DefMemMgr);
         AddProcess(DefNetStack);
-        AddProcess(HostileDefs[0]);
 
         Log("System initialized. Monitoring RAM and CPU...");
-        Log("WARNING: Unauthorized processes detected!");
+        Log("No unauthorized processes detected... yet.");
         Log("Type 'HELP' for available commands.");
         Log("Type 'RUN UPLOADER' to begin the upload.");
 
@@ -325,6 +327,8 @@ public class GameManager : MonoBehaviour
     void EnsureFocus()
     {
         if (root == null || commandInput == null || processList == null) return;
+        if (isInputBlocked || isGameOver) return;
+
         VisualElement target = focusMode == FocusMode.Input ? (VisualElement)commandInput : processList;
         var focused = root.focusController?.focusedElement as VisualElement;
         bool ok = focused != null && (focused == target || target.Contains(focused));
@@ -404,6 +408,7 @@ public class GameManager : MonoBehaviour
             RefreshProcessTable();
             UpdateJobsPanel();
         }
+        if (cacheRamLabel != null) cacheRamLabel.text = $"{ramCache / RamMax * 100f:F1}%";
         UpdateUI();
         TickAlarms(dt);
     }
@@ -609,28 +614,39 @@ public class GameManager : MonoBehaviour
 
         float r = Random.value;
         Def def = null;
-        if (r < fakeChance) def = PickFake();
+        if (!firstThreatSpawned)
+        {
+            def = HostileDefs[0];   // SCAN.EXE — безопасное знакомство с угрозами
+            firstThreatSpawned = true;
+            //Log("WARNING: Unauthorized process detected!");
+        }
+        else if (r < fakeChance) def = PickFake();
         else if (r < fakeChance + specialChance) def = PickSpecial();
         if (def == null) def = PickHostile();
 
         var p = AddProcess(def);
+        /*
         switch (def.kind)
         {
             case Kind.Fake:
+                // Подделка маскируется под системный — оставляем, это часть обмана
                 Log($"SYSTEM PROCESS LOADED: {p.name}");
                 Sfx(systemSpawnClip);
                 break;
             case Kind.Hidden:
+                // Молча — игрок видит только рост RAM
                 break;
             case Kind.Trap:
+                // Оставляем — загадочное сообщение, часть атмосферы
                 Log($"Unknown process loaded: {p.name}");
                 Sfx(spawnClip);
                 break;
             default:
-                Log($"New threat detected: {p.name} (+{Mathf.RoundToInt(p.baseRam)}KB RAM, {p.baseCpu:F0}% CPU)");
-                Sfx(spawnClip);
+                // УБРАНО: больше не подсказываем, что появился новый враг
+                // Игрок должен сам заметить рост RAM/CPU
                 break;
         }
+        */
     }
 
     Def PickHostile()
@@ -864,7 +880,11 @@ public class GameManager : MonoBehaviour
         Log($"> {command}");
         ProcessCommand(command);
         if (!isInputBlocked)
+        {
             commandInput.value = "";
+            // Принудительно возвращаем фокус
+            commandInput.Focus();
+        }
     }
 
     void ProcessCommand(string command)
