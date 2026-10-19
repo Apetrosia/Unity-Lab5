@@ -50,7 +50,7 @@
                     <ui:Label text="Instant upload boost" class="process-label" />
                 </ui:VisualElement>
                 <ui:VisualElement class="process-item">
-                    <ui:Label text="FLUSH_CACHE  |  ALLOCATE_MEMORY" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="FLUSH_CACHE" class="process-label" style="width: 300px; flex-shrink: 0;" />
                     <ui:Label text="Free up RAM" class="process-label" />
                 </ui:VisualElement>
                 <ui:VisualElement class="process-item">
