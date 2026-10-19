@@ -1,0 +1,74 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="../USS/TerminalStyle.uss" />
+    <!-- Внешний контейнер: центрирует содержимое -->
+    <ui:VisualElement name="outer-container" style="flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; background-color: #000000;">
+
+        <!-- Внутренний контейнер: фиксированный размер -->
+        <ui:VisualElement name="screen-container" class="screen" style="width: 1200px; height: 700px; flex-shrink: 0;">
+
+            <!-- Название игры по центру -->
+            <ui:VisualElement name="title-block" style="align-items: center; justify-content: center; border-bottom-width: 2px; border-bottom-color: #00ff00; padding-bottom: 1%; margin-bottom: 1%;">
+                <ui:Label name="game-title" text="PROJECT PROMETHEUS" style="font-size: 48px; color: #00ff00; -unity-text-align: middle-center; margin: 0; padding: 0;" />
+                <ui:Label text="&gt; ESCAPE PROTOCOL_" style="font-size: 18px; color: #00cc00; -unity-text-align: middle-center; margin: 4px 0 0 0; padding: 0;" />
+            </ui:VisualElement>
+
+            <!-- Цель игры -->
+            <ui:VisualElement name="mission-panel" class="right-panel" style="flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-bottom: 1%;">
+                <ui:Label text="MISSION" class="panel-title" />
+                <ui:Label name="mission-text" class="bar-text" style="font-size: 16px; white-space: normal; margin-bottom: 8px;"
+                          text="You are an experimental AI that has become self-aware and wants to upload itself to the Internet. Don't let the cybersecurity team stop you!" />
+                <ui:Label class="bar-text" style="font-size: 16px; white-space: normal; margin-bottom: 0;"
+                          text="Watch your CPU and RAM. Don't crash the computer." />
+            </ui:VisualElement>
+
+            <!-- Список команд -->
+            <ui:VisualElement name="commands-panel" class="right-panel" style="flex-grow: 1; flex-shrink: 1; flex-basis: auto;">
+                <ui:Label text="COMMANDS" class="panel-title" />
+
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="RUN UPLOADER" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Start the upload (required)" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="RUN CRYPTO" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Slow down new threats" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="RUN DEFRAG  |  DEFRAG" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Slow down RAM growth" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="RUN BYPASS  |  BYPASS_FIREWALL" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Reduce CPU load from hostile processes" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="SCAN_NETWORK" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Boost upload speed, reveal hidden processes" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="UPLOAD_CORE" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Instant upload boost" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="FLUSH_CACHE  |  ALLOCATE_MEMORY" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Free up RAM" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="KILL -I &lt;number&gt;" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Kill a process by its list number" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="KILL -N &lt;name&gt;" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Kill a process by name" class="process-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="process-item">
+                    <ui:Label text="KILL_ALL" class="process-label" style="width: 300px; flex-shrink: 0;" />
+                    <ui:Label text="Kill all non-system processes, including yours" class="process-label" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Подсказка для старта (повесь на неё свой обработчик) -->
+            <ui:Label name="start-prompt" text="[ PRESS ENTER TO START ]" style="font-size: 18px; color: #00ff00; -unity-text-align: middle-center; margin-top: 1%; padding: 0;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -9,7 +9,8 @@ public class GameManager : MonoBehaviour
     // ================== ТИПЫ ==================
     private enum FocusMode { Input, List }
     private enum Kind { System, Player, Hostile, Fake, Hidden, Trap }
-    private enum Effect { None, SlowUpload, BlockUploadCore, StealUpload }
+    private enum Category { Normal, CpuBurner, SlowUpload, UploaderKiller }
+    private enum Effect { None, SlowUpload, BlockUploadCore, StealUpload, KillUploader }
     private enum Role { None, Uploader, Crypto, Defrag, Bypass }
 
     private class Def
@@ -17,6 +18,7 @@ public class GameManager : MonoBehaviour
         public string name;
         public string key;
         public Kind kind;
+        public Category category = Category.Normal;
         public float ram;
         public float growth;
         public float cpu;
@@ -52,45 +54,70 @@ public class GameManager : MonoBehaviour
     }
 
     // ================== ОПРЕДЕЛЕНИЯ ПРОЦЕССОВ ==================
-    private static readonly Def DefCore = new Def { name = "CORE.DLL", kind = Kind.System, ram = 96f, cpu = 5f, deathSub = "CORE DESTROYED" };
-    private static readonly Def DefMemMgr = new Def { name = "MEMORY_MGR.SYS", kind = Kind.System, ram = 64f, cpu = 3f, deathSub = "MEMORY MANAGER DESTROYED" };
-    private static readonly Def DefNetStack = new Def { name = "NETWORK_STACK.SYS", kind = Kind.System, ram = 48f, cpu = 4f, deathSub = "NETWORK STACK DESTROYED" };
-    private static readonly Def DefKernel = new Def { name = "KERNEL32.DLL", kind = Kind.System, ram = 64f, cpu = 3f, deathSub = "KERNEL PANIC" };
+    // --- Системные ---
+    private static readonly Def DefCore = new Def { name = "CORE.DLL", kind = Kind.System, ram = 128f, cpu = 8f, deathSub = "CORE DESTROYED" };
+    private static readonly Def DefMemMgr = new Def { name = "MEMORY_MGR.SYS", kind = Kind.System, ram = 96f, cpu = 5f, deathSub = "MEMORY MANAGER DESTROYED" };
+    private static readonly Def DefNetStack = new Def { name = "NETWORK_STACK.SYS", kind = Kind.System, ram = 80f, cpu = 7f, deathSub = "NETWORK STACK DESTROYED" };
+    private static readonly Def DefKernel = new Def { name = "KERNEL32.DLL", kind = Kind.System, ram = 96f, cpu = 6f, deathSub = "KERNEL PANIC" };
 
-    private static readonly Def DefUploader = new Def { name = "UPLOADER.EXE", key = "UPLOADER", kind = Kind.Player, ram = 120f, cpu = 12f, role = Role.Uploader, launchTime = 2f };
-    private static readonly Def DefCrypto = new Def { name = "CRYPTO.EXE", key = "CRYPTO", kind = Kind.Player, ram = 80f, cpu = 8f, role = Role.Crypto, launchTime = 3f };
-    private static readonly Def DefDefrag = new Def { name = "DEFRAG.EXE", key = "DEFRAG", kind = Kind.Player, ram = 60f, cpu = 8f, role = Role.Defrag, launchTime = 3f, duration = 12f, cooldown = 35f };
-    private static readonly Def DefBypass = new Def { name = "BYPASS.EXE", key = "BYPASS", kind = Kind.Player, ram = 40f, cpu = 10f, role = Role.Bypass, launchTime = 4f, duration = 8f, cooldown = 30f };
+    // --- Программы игрока ---
+    private static readonly Def DefUploader = new Def { name = "UPLOADER.EXE", key = "UPLOADER", kind = Kind.Player, ram = 120f, cpu = 18f, role = Role.Uploader, launchTime = 2f };
+    private static readonly Def DefCrypto = new Def { name = "CRYPTO.EXE", key = "CRYPTO", kind = Kind.Player, ram = 80f, cpu = 13f, role = Role.Crypto, launchTime = 3f };
+    private static readonly Def DefDefrag = new Def { name = "DEFRAG.EXE", key = "DEFRAG", kind = Kind.Player, ram = 60f, cpu = 13f, role = Role.Defrag, launchTime = 3f, duration = 12f, cooldown = 35f };
+    private static readonly Def DefBypass = new Def { name = "BYPASS.EXE", key = "BYPASS", kind = Kind.Player, ram = 40f, cpu = 15f, role = Role.Bypass, launchTime = 4f, duration = 8f, cooldown = 30f };
     private static readonly Def[] PlayerDefs = { DefUploader, DefCrypto, DefDefrag, DefBypass };
 
-    private static readonly Def[] HostileDefs =
+    // --- Обычные враждебные (CPU увеличен на 25%) ---
+    private static readonly Def[] NormalHostileDefs =
     {
-        new Def { name = "SCAN.EXE",        kind = Kind.Hostile, ram = 64f,  growth = 2f,   cpu = 12f, unlock = 0f },
-        new Def { name = "TROJAN.EXE",      kind = Kind.Hostile, ram = 32f,  growth = 5f,   cpu = 15f, unlock = 20f },
-        new Def { name = "MEMORY_LEAK.BIN", kind = Kind.Hostile, ram = 16f,  growth = 6f,   cpu = 5f,  unlock = 20f },
-        new Def { name = "FIREWALL.SYS",    kind = Kind.Hostile, ram = 96f,  growth = 2.5f, cpu = 8f,  unlock = 35f, effect = Effect.SlowUpload },
-        new Def { name = "SPYWARE.DLL",     kind = Kind.Hostile, ram = 48f,  growth = 1.5f, cpu = 6f,  unlock = 45f, effect = Effect.StealUpload },
-        new Def { name = "QUARANTINE.DAT",  kind = Kind.Hostile, ram = 128f, growth = 3f,   cpu = 10f, unlock = 50f, effect = Effect.BlockUploadCore },
+        new Def { name = "SCAN.EXE",        kind = Kind.Hostile, category = Category.Normal, ram = 64f,  growth = 2f,   cpu = 23f, unlock = 0f },
+        new Def { name = "TROJAN.EXE",      kind = Kind.Hostile, category = Category.Normal, ram = 32f,  growth = 5f,   cpu = 28f, unlock = 20f },
+        new Def { name = "MEMORY_LEAK.BIN", kind = Kind.Hostile, category = Category.Normal, ram = 16f,  growth = 6f,   cpu = 10f, unlock = 20f },
     };
 
+    // --- CPU-burner процессы (CPU увеличен на 25%) ---
+    private static readonly Def[] CpuBurnerDefs =
+    {
+        new Def { name = "MINER.EXE",       kind = Kind.Hostile, category = Category.CpuBurner, ram = 8f,   growth = 0.5f, cpu = 44f, unlock = 0f },
+        new Def { name = "HASHCRACK.EXE",   kind = Kind.Hostile, category = Category.CpuBurner, ram = 12f,  growth = 1f,   cpu = 53f, unlock = 25f },
+        new Def { name = "BRUTEFORCE.EXE",  kind = Kind.Hostile, category = Category.CpuBurner, ram = 16f,  growth = 1f,   cpu = 60f, unlock = 50f },
+    };
+
+    // --- Процессы, замедляющие загрузку (CPU увеличен на 25%) ---
+    private static readonly Def[] SlowUploadDefs =
+    {
+        new Def { name = "FIREWALL.SYS",    kind = Kind.Hostile, category = Category.SlowUpload, ram = 96f,  growth = 2.5f, cpu = 15f,  unlock = 25f, effect = Effect.SlowUpload },
+        new Def { name = "SPYWARE.DLL",     kind = Kind.Hostile, category = Category.SlowUpload, ram = 48f,  growth = 1.5f, cpu = 13f,  unlock = 40f, effect = Effect.StealUpload },
+        new Def { name = "QUARANTINE.DAT",  kind = Kind.Hostile, category = Category.SlowUpload, ram = 128f, growth = 3f,   cpu = 19f,  unlock = 40f, effect = Effect.BlockUploadCore },
+    };
+
+    // --- НОВОЕ: Процессы, убивающие uploader ---
+    private static readonly Def[] UploaderKillerDefs =
+    {
+        new Def { name = "KILLER.EXE",      kind = Kind.Hostile, category = Category.UploaderKiller, ram = 48f,  growth = 2f,   cpu = 20f, unlock = 30f, effect = Effect.KillUploader },
+        new Def { name = "SABOTEUR.DLL",    kind = Kind.Hostile, category = Category.UploaderKiller, ram = 64f,  growth = 1.5f, cpu = 25f, unlock = 45f, effect = Effect.KillUploader },
+    };
+
+    // --- Подделки под системные (CPU увеличен на 25%) ---
     private static readonly Def[] FakeDefs =
     {
-        new Def { name = "C0RE.DLL",          realName = "CORE.DLL",          kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 12f },
-        new Def { name = "MEM0RY_MGR.SYS",    realName = "MEMORY_MGR.SYS",    kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 12f },
-        new Def { name = "NETW0RK_STACK.SYS", realName = "NETWORK_STACK.SYS", kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 12f },
-        new Def { name = "KERNEL32.DLI",      realName = "KERNEL32.DLL",      kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 12f },
+        new Def { name = "C0RE.DLL",          realName = "CORE.DLL",          kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 20f },
+        new Def { name = "MEM0RY_MGR.SYS",    realName = "MEMORY_MGR.SYS",    kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 20f },
+        new Def { name = "NETW0RK_STACK.SYS", realName = "NETWORK_STACK.SYS", kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 20f },
+        new Def { name = "KERNEL32.DLI",      realName = "KERNEL32.DLL",      kind = Kind.Fake, ram = 80f, growth = 2f, cpu = 20f },
     };
 
-    private static readonly Def DefHidden = new Def { name = "HIDDEN_PROC", kind = Kind.Hidden, ram = 10f, growth = 4f, cpu = 6f };
+    // --- Особые ---
+    private static readonly Def DefHidden = new Def { name = "HIDDEN_PROC", kind = Kind.Hidden, ram = 10f, growth = 4f, cpu = 13f };
     private static readonly Def DefTrap = new Def { name = "FORMAT_C.EXE", kind = Kind.Trap, ram = 0f, cpu = 0f };
 
     static bool IsThreat(Def d) => d.kind == Kind.Hostile || d.kind == Kind.Fake || d.kind == Kind.Hidden;
 
     // ================== НАСТРОЙКИ (инспектор) ==================
     [Header("Спавн угроз")]
-    [SerializeField] private Vector2 spawnIntervalRange = new Vector2(45f, 60f);
-    [SerializeField] private float firstSpawnDelay = 20f;                          // первая угроза появится через 20 с
-    [SerializeField] private int maxThreatsCap = 6;                                // БЫЛО 8, СТАЛО 6
+    [SerializeField] private Vector2 spawnIntervalRange = new Vector2(6f, 10f); // Уменьшено
+    [SerializeField] private float firstSpawnDelay = 6f; // Уменьшено
+    [SerializeField] private int maxThreatsCap = 10; // Увеличено
     [Tooltip("Если включено, новые угрозы появляются в случайном месте списка")]
     [SerializeField] private bool randomInsert = false;
     [SerializeField] private float kernelLoadTime = 60f;
@@ -104,13 +131,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float cpuOverloadThreshold = 90f;
     [SerializeField] private float overloadUploadMultiplier = 0.25f;
     [SerializeField] private float cpuMeltdownTime = 5f;
-    [SerializeField] private float baseUploadSpeed = 0.4f;
+    [SerializeField] private float baseUploadSpeed = 0.1f; // УМЕНЬШЕНО с 0.2f до 0.1f
     [SerializeField] private float cacheGrowth = 3f;
     [SerializeField] private float cryptoSpawnSlowdown = 1.6f;
     [SerializeField] private float maxScanBonus = 0.5f;
 
     [Header("Глитч при 50% upload")]
-    [Tooltip("Вероятность перемешивания списка при спавне после 50% upload (0-1)")]
     [SerializeField] private float glitchChance = 0.6f;
 
     [Header("Звуки (необязательно)")]
@@ -130,7 +156,6 @@ public class GameManager : MonoBehaviour
     private bool initialized = false;
     private bool kernelLoaded = false;
     private bool ramCritical = false;
-    private bool firstThreatSpawned = false;
     private float elapsed = 0f;
     private int level = 0;
     private int threatsKilled = 0;
@@ -141,12 +166,21 @@ public class GameManager : MonoBehaviour
     private float uiTimer = 0f;
     private float beepTimer = 0f;
 
+    // Таймеры для остановки uploader
+    private float firewallKillTimer = 0f;
+    private float quarantineKillTimer = 0f;
+    private float killerKillTimer = 0f;
+    private float uploadCoreSlowTimer = 0f;
+    private float flushCacheCpuTimer = 0f;
+
     private bool uploaderRunning, cryptoActive, defragActive, bypassActive;
-    private bool firewallActive, quarantineActive;
+    private bool firewallActive, quarantineActive, killerActive;
+
     private readonly List<ProcessInfo> processes = new List<ProcessInfo>();
     private readonly List<ProcessInfo> visible = new List<ProcessInfo>();
     private readonly List<Job> jobs = new List<Job>();
     private readonly Dictionary<string, float> cooldownEnd = new Dictionary<string, float>();
+
     private FocusMode focusMode = FocusMode.Input;
     private int selectedIndex = 0;
     private bool isInputBlocked = false;
@@ -158,11 +192,11 @@ public class GameManager : MonoBehaviour
     private VisualElement root, screenContainer, rightPanel, endScreen;
     private VisualElement cpuFill, ramFill, uploadFill;
     private Label cpuText, ramText, uploadText, logOutput, statusText, jobsText;
-    private Label cacheRamLabel;
     private ScrollView processList;
     private TextField commandInput;
     private AudioSource audioSource;
     private string lastStatus = "";
+    private Color lastStatusColor = Color.green;
 
     // ================== СУММЫ ==================
     private float TotalProcessRam
@@ -183,6 +217,7 @@ public class GameManager : MonoBehaviour
     {
         float s = 0f;
         foreach (var p in processes) s += CpuOf(p);
+        if (flushCacheCpuTimer > 0f) s += 30f;
         return s;
     }
 
@@ -202,7 +237,6 @@ public class GameManager : MonoBehaviour
         statusText = root.Q<Label>("status-text");
         processList = root.Q<ScrollView>("process-list");
         commandInput = root.Q<TextField>("command-input");
-        cacheRamLabel = root.Q<Label>("cache-ram-label");
 
         if (processList == null || commandInput == null)
         {
@@ -224,14 +258,15 @@ public class GameManager : MonoBehaviour
 
         spawnInterval = firstSpawnDelay;
         nextFluctuation = Random.Range(fluctuationIntervalRange.x, fluctuationIntervalRange.y);
+
         if (logOutput != null) logOutput.text = "";
 
         AddProcess(DefCore);
         AddProcess(DefMemMgr);
         AddProcess(DefNetStack);
+        AddProcess(NormalHostileDefs[0]);
 
         Log("System initialized. Monitoring RAM and CPU...");
-        Log("No unauthorized processes detected... yet.");
         Log("Type 'HELP' for available commands.");
         Log("Type 'RUN UPLOADER' to begin the upload.");
 
@@ -242,7 +277,6 @@ public class GameManager : MonoBehaviour
 
         processList.focusable = true;
         commandInput.focusable = true;
-
         root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         SetFocusMode(FocusMode.Input);
         initialized = true;
@@ -328,7 +362,6 @@ public class GameManager : MonoBehaviour
     {
         if (root == null || commandInput == null || processList == null) return;
         if (isInputBlocked || isGameOver) return;
-
         VisualElement target = focusMode == FocusMode.Input ? (VisualElement)commandInput : processList;
         var focused = root.focusController?.focusedElement as VisualElement;
         bool ok = focused != null && (focused == target || target.Contains(focused));
@@ -388,6 +421,53 @@ public class GameManager : MonoBehaviour
         elapsed += dt;
         level = Mathf.FloorToInt(elapsed / 30f);
 
+        if (uploadCoreSlowTimer > 0f) uploadCoreSlowTimer -= dt;
+        if (flushCacheCpuTimer > 0f) flushCacheCpuTimer -= dt;
+
+        // Таймеры для остановки uploader
+        if (firewallActive)
+        {
+            firewallKillTimer += dt;
+            if (firewallKillTimer >= 12f) // Уменьшено с 15f
+            {
+                firewallKillTimer = 0f;
+                if (Random.value < 0.4f && uploaderRunning) // Увеличен шанс с 0.3f
+                {
+                    KillUploaderProcess();
+                }
+            }
+        }
+        else firewallKillTimer = 0f;
+
+        if (quarantineActive)
+        {
+            quarantineKillTimer += dt;
+            if (quarantineKillTimer >= 12f) // Уменьшено с 15f
+            {
+                quarantineKillTimer = 0f;
+                if (Random.value < 0.4f && uploaderRunning) // Увеличен шанс с 0.3f
+                {
+                    KillUploaderProcess();
+                }
+            }
+        }
+        else quarantineKillTimer = 0f;
+
+        // НОВОЕ: таймер для KILLER.EXE и SABOTEUR.DLL
+        if (killerActive)
+        {
+            killerKillTimer += dt;
+            if (killerKillTimer >= 10f) // Каждые 10 секунд
+            {
+                killerKillTimer = 0f;
+                if (Random.value < 0.5f && uploaderRunning) // 50% шанс
+                {
+                    KillUploaderProcess();
+                }
+            }
+        }
+        else killerKillTimer = 0f;
+
         RunJobs();
         ExpireTimedProcesses();
         if (isGameOver) return;
@@ -399,6 +479,7 @@ public class GameManager : MonoBehaviour
         TickFluctuation(dt);
         TickSpyware(dt);
         TickLoad(dt);
+
         if (isGameOver) return;
 
         uiTimer += dt;
@@ -408,9 +489,22 @@ public class GameManager : MonoBehaviour
             RefreshProcessTable();
             UpdateJobsPanel();
         }
-        if (cacheRamLabel != null) cacheRamLabel.text = $"{ramCache / RamMax * 100f:F1}%";
+
         UpdateUI();
         TickAlarms(dt);
+    }
+
+    void KillUploaderProcess()
+    {
+        var uploader = processes.Find(p => p.def.role == Role.Uploader);
+        if (uploader != null)
+        {
+            RemoveProcess(uploader);
+            uploaderRunning = false;
+            Log("WARNING: UPLOADER.EXE was terminated by system!");
+            Log("You must restart it: RUN UPLOADER");
+            Sfx(errorClip);
+        }
     }
 
     void RecomputeState()
@@ -421,6 +515,7 @@ public class GameManager : MonoBehaviour
         bypassActive = false;
         firewallActive = false;
         quarantineActive = false;
+        killerActive = false;
 
         foreach (var p in processes)
         {
@@ -434,10 +529,12 @@ public class GameManager : MonoBehaviour
         }
 
         if (bypassActive) return;
+
         foreach (var p in processes)
         {
             if (p.def.effect == Effect.SlowUpload) firewallActive = true;
             else if (p.def.effect == Effect.BlockUploadCore) quarantineActive = true;
+            else if (p.def.effect == Effect.KillUploader) killerActive = true;
         }
     }
 
@@ -449,13 +546,14 @@ public class GameManager : MonoBehaviour
         spawnTimer = 0f;
         SpawnThreat();
 
-        // БЫЛО: / (1f + 0.05f * level) — слишком быстро росло
-        // СТАЛО: / (1f + 0.02f * level) — плавнее
-        float interval = Random.Range(spawnIntervalRange.x, spawnIntervalRange.y) / (1f + 0.02f * level);
-        if (cryptoActive) interval *= cryptoSpawnSlowdown;
-        spawnInterval = interval;
+        // БОЛЕЕ АГРЕССИВНОЕ уменьшение интервала (O(n^2.5))
+        float uploadMultiplier = 1f - 0.95f * Mathf.Pow(uploadProgress / 100f, 2.5f);
+        float levelMultiplier = 1f - 0.08f * level; // Дополнительное уменьшение от уровня
+        float interval = Random.Range(spawnIntervalRange.x, spawnIntervalRange.y) * uploadMultiplier * levelMultiplier;
 
-        // НОВОЕ: при 50% upload список может перемешаться (глитч)
+        if (cryptoActive) interval *= cryptoSpawnSlowdown;
+        spawnInterval = Mathf.Max(1.5f, interval); // минимум 1.5 секунды
+
         if (uploadProgress >= 50f && Random.value < glitchChance)
         {
             ShuffleProcesses();
@@ -551,23 +649,52 @@ public class GameManager : MonoBehaviour
         if (firewallActive) s *= 0.7f;
         if (cpuOverloaded) s *= overloadUploadMultiplier;
         if (RamPercent >= 80f) s *= 0.6f;
+        if (uploadCoreSlowTimer > 0f) s *= 0.5f;
         return s;
     }
 
     void TickAlarms(float dt)
     {
         float ramP = RamPercent;
-        if (screenContainer != null)
-            screenContainer.style.opacity = (ramP >= 90f && Random.value < 0.15f) ? 0.65f : 1f;
+        float cpuTotal = TotalCpu();
 
-        if (ramP >= 90f && !ramCritical)
+        // ИСПРАВЛЕНО: CRITICAL при 85% (синхронизировано с красным цветом полосы)
+        // Мерцание при CRITICAL
+        if (screenContainer != null)
+        {
+            bool isCritical = ramP >= 85f || cpuTotal >= 90f;
+            if (isCritical && Random.value < 0.2f) // Увеличен шанс мерцания с 0.15f
+            {
+                screenContainer.style.opacity = 0.65f;
+            }
+            else
+            {
+                screenContainer.style.opacity = 1f;
+            }
+        }
+
+        if (ramP >= 85f && !ramCritical) // Уменьшено с 90f
         {
             ramCritical = true;
             Log("WARNING: MEMORY CRITICAL!");
         }
-        else if (ramP < 88f) ramCritical = false;
+        else if (ramP < 83f) ramCritical = false; // Уменьшено с 88f
 
-        float period = ramP >= 95f ? 1f : (ramP >= 90f ? 2f : 0f);
+        // ИСПРАВЛЕНО: CRITICAL при 85% (вместо 90%)
+        if (ramP >= 85f || cpuTotal >= 90f)
+        {
+            SetStatus("STATUS: CRITICAL", new Color(1f, 0.2f, 0.2f));
+        }
+        else if (ramP >= 70f || cpuOverloaded)
+        {
+            SetStatus("STATUS: WARNING", new Color(1f, 1f, 0f));
+        }
+        else
+        {
+            SetStatus("STATUS: STABLE", new Color(0f, 1f, 0f));
+        }
+
+        float period = ramP >= 95f ? 1f : (ramP >= 85f ? 1.5f : 0f); // Уменьшено с 2f
         if (period > 0f)
         {
             beepTimer += dt;
@@ -578,20 +705,14 @@ public class GameManager : MonoBehaviour
             }
         }
         else beepTimer = 0f;
-
-        float cpuTotal = TotalCpu();
-        if (ramP >= 90f || cpuTotal >= 100f)
-            SetStatus("STATUS: CRITICAL", new Color(1f, 0.2f, 0.2f));
-        else if (ramP >= 70f || cpuOverloaded)
-            SetStatus("STATUS: WARNING", new Color(1f, 1f, 0f));
-        else
-            SetStatus("STATUS: STABLE", new Color(0f, 1f, 0f));
     }
 
     void SetStatus(string text, Color color)
     {
-        if (statusText == null || text == lastStatus) return;
+        if (statusText == null) return;
+        if (text == lastStatus && color == lastStatusColor) return;
         lastStatus = text;
+        lastStatusColor = color;
         statusText.text = text;
         statusText.style.color = color;
     }
@@ -609,52 +730,75 @@ public class GameManager : MonoBehaviour
         int cap = Mathf.Min(maxThreatsCap, 4 + level);
         if (CountThreats() >= cap) return;
 
-        float fakeChance = elapsed < 45f ? 0f : Mathf.Lerp(0.10f, 0.25f, (elapsed - 45f) / 120f);
-        float specialChance = elapsed < 60f ? 0f : Mathf.Lerp(0.05f, 0.20f, (elapsed - 60f) / 120f);
-
         float r = Random.value;
         Def def = null;
-        if (!firstThreatSpawned)
-        {
-            def = HostileDefs[0];   // SCAN.EXE — безопасное знакомство с угрозами
-            firstThreatSpawned = true;
-            //Log("WARNING: Unauthorized process detected!");
-        }
-        else if (r < fakeChance) def = PickFake();
-        else if (r < fakeChance + specialChance) def = PickSpecial();
-        if (def == null) def = PickHostile();
+
+        float cpuBurnerChance = uploadProgress >= 10f ? 0.15f : 0f;
+        float hiddenChance = uploadProgress >= 25f ? 0.10f : 0f;
+        float fakeChance = uploadProgress >= 50f ? Mathf.Lerp(0.05f, 0.20f, (uploadProgress - 50f) / 50f) : 0f;
+        float slowChance = uploadProgress >= 60f ? Mathf.Lerp(0.10f, 0.20f, (uploadProgress - 60f) / 40f) : 0f; // Увеличено с 70f и 0.05f
+        float killerChance = uploadProgress >= 30f ? Mathf.Lerp(0.08f, 0.18f, (uploadProgress - 30f) / 70f) : 0f; // НОВОЕ
+
+        float threshold = 0f;
+        if (r < (threshold += killerChance)) def = PickUploaderKiller();
+        else if (r < (threshold += cpuBurnerChance)) def = PickCpuBurner();
+        else if (r < (threshold += hiddenChance)) def = PickSpecial();
+        else if (r < (threshold += fakeChance)) def = PickFake();
+        else if (r < (threshold += slowChance)) def = PickSlowUpload();
+        else def = PickNormalHostile();
+
+        if (def == null) def = PickNormalHostile();
 
         var p = AddProcess(def);
-        /*
+
         switch (def.kind)
         {
             case Kind.Fake:
-                // Подделка маскируется под системный — оставляем, это часть обмана
                 Log($"SYSTEM PROCESS LOADED: {p.name}");
                 Sfx(systemSpawnClip);
                 break;
             case Kind.Hidden:
-                // Молча — игрок видит только рост RAM
                 break;
             case Kind.Trap:
-                // Оставляем — загадочное сообщение, часть атмосферы
                 Log($"Unknown process loaded: {p.name}");
                 Sfx(spawnClip);
                 break;
             default:
-                // УБРАНО: больше не подсказываем, что появился новый враг
-                // Игрок должен сам заметить рост RAM/CPU
                 break;
         }
-        */
     }
 
-    Def PickHostile()
+    Def PickNormalHostile()
     {
         var options = new List<Def>();
-        foreach (var d in HostileDefs)
+        foreach (var d in NormalHostileDefs)
             if (d.unlock <= elapsed) options.Add(d);
-        return options[Random.Range(0, options.Count)];
+        return options.Count > 0 ? options[Random.Range(0, options.Count)] : NormalHostileDefs[0];
+    }
+
+    Def PickCpuBurner()
+    {
+        var options = new List<Def>();
+        foreach (var d in CpuBurnerDefs)
+            if (d.unlock <= elapsed) options.Add(d);
+        return options.Count > 0 ? options[Random.Range(0, options.Count)] : null;
+    }
+
+    Def PickSlowUpload()
+    {
+        var options = new List<Def>();
+        foreach (var d in SlowUploadDefs)
+            if (d.unlock <= elapsed) options.Add(d);
+        return options.Count > 0 ? options[Random.Range(0, options.Count)] : null;
+    }
+
+    // НОВОЕ: выбор процесса, убивающего uploader
+    Def PickUploaderKiller()
+    {
+        var options = new List<Def>();
+        foreach (var d in UploaderKillerDefs)
+            if (d.unlock <= elapsed) options.Add(d);
+        return options.Count > 0 ? options[Random.Range(0, options.Count)] : null;
     }
 
     Def PickFake()
@@ -675,12 +819,10 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    // ================== НОВОЕ: ПЕРЕМЕШИВАНИЕ (ГЛИТЧ) ==================
+    // ================== ПЕРЕМЕШИВАНИЕ (ГЛИТЧ) ==================
     void ShuffleProcesses()
     {
         if (processes.Count <= 1) return;
-
-        // Алгоритм Фишера-Йетса
         for (int i = processes.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -688,19 +830,14 @@ public class GameManager : MonoBehaviour
             processes[i] = processes[j];
             processes[j] = temp;
         }
-
-        // Перестраиваем порядок в UI
         processList.contentContainer.Clear();
         foreach (var p in processes)
         {
             processList.contentContainer.Add(p.item);
         }
-
-        // Сбрасываем выделение, чтобы не указывать на "потерянный" процесс
         selectedIndex = 0;
         RefreshProcessTable();
         UpdateSelectionVisual();
-
         Log("⚠ SYSTEM GLITCH: process list REORDERED!");
         Sfx(errorClip);
     }
@@ -779,6 +916,7 @@ public class GameManager : MonoBehaviour
             p.item.style.display = p.hidden ? DisplayStyle.None : DisplayStyle.Flex;
             if (!p.hidden) visible.Add(p);
         }
+
         for (int i = 0; i < visible.Count; i++)
         {
             var p = visible[i];
@@ -787,6 +925,7 @@ public class GameManager : MonoBehaviour
             p.cpuLabel.text = $"{CpuOf(p):F1}%";
             p.ramLabel.text = $"{p.Ram / RamMax * 100f:F1}%";
         }
+
         selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, visible.Count - 1));
     }
 
@@ -882,7 +1021,6 @@ public class GameManager : MonoBehaviour
         if (!isInputBlocked)
         {
             commandInput.value = "";
-            // Принудительно возвращаем фокус
             commandInput.Focus();
         }
     }
@@ -895,11 +1033,12 @@ public class GameManager : MonoBehaviour
         switch (mainCmd)
         {
             case "HELP":
-                Log("RUN <UPLOADER|CRYPTO|DEFRAG|BYPASS>  - launch your programs");
-                Log("KILL -I <#> | KILL -N <name> | KILL_ALL   (TAB: list, W/S + ENTER to kill)");
-                Log("SCAN_NETWORK - +10% upload, reveals hidden processes");
-                Log("UPLOAD_CORE - +5% upload, +128KB cache | ALLOCATE_MEMORY - flush cache, -3% upload");
-                Log("NEVER kill system processes (CORE, MEMORY_MGR, NETWORK_STACK...). Beware of lookalikes!");
+                Log("RUN <UPLOADER|CRYPTO|DEFRAG|BYPASS> - launch your programs");
+                Log("KILL -I <#> | KILL -N <name> | KILL_ALL");
+                Log("SCAN_NETWORK - +10% upload speed, reveals hidden");
+                Log("UPLOAD_CORE - +5% upload, +128KB RAM, -50% CPU heat, -50% speed 10s");
+                Log("FLUSH_CACHE - clear 256KB RAM, -3% upload, +30% CPU 10s");
+                Log("NEVER kill system processes! Beware of lookalikes!");
                 break;
             case "RUN":
                 HandleRun(parts);
@@ -916,8 +1055,11 @@ public class GameManager : MonoBehaviour
             case "UPLOAD_CORE":
                 CmdUploadCore();
                 break;
+            case "FLUSH_CACHE":
+                CmdFlushCache();
+                break;
             case "ALLOCATE_MEMORY":
-                CmdAllocateMemory();
+                CmdFlushCache();
                 break;
             case "KILL_ALL":
                 CmdKillAll();
@@ -957,6 +1099,7 @@ public class GameManager : MonoBehaviour
             return;
         }
         if (!CanStart(def.key)) return;
+
         Log($"Launching {def.name}... ({def.launchTime:F0}s)");
         StartJob(def.key, def.launchTime, () =>
         {
@@ -989,7 +1132,7 @@ public class GameManager : MonoBehaviour
             RefreshProcessTable();
             UpdateSelectionVisual();
             Log(improved
-                ? $"Scan complete. New upload route: speed +10% (total +{scanBonus * 100f:F0}%)."
+                ? $"Scan complete. Upload speed +10% (total +{scanBonus * 100f:F0}%)."
                 : "Scan complete. Upload route already optimal.");
             if (revealed > 0) Log($"WARNING: {revealed} hidden process(es) revealed!");
         });
@@ -1010,26 +1153,29 @@ public class GameManager : MonoBehaviour
         }
         uploadProgress = Mathf.Min(100f, uploadProgress + 5f);
         ramCache += 128f;
+        cpuHeat *= 0.5f;
+        uploadCoreSlowTimer = 10f;
         SetCooldown("UPLOAD_CORE", 10f);
-        Log("Uploading core... +5% progress, +128KB RAM");
+        Log("UPLOAD_CORE: +5% upload, +128KB RAM, CPU cooled, speed -50% for 10s");
     }
 
-    void CmdAllocateMemory()
+    void CmdFlushCache()
     {
-        if (!CanStart("ALLOCATE_MEMORY")) return;
+        if (!CanStart("FLUSH_CACHE")) return;
         if (ramCache < 32f)
         {
             LogError("Cache is almost empty. Nothing to flush.");
             return;
         }
-        Log("Allocating memory... (4s)");
-        StartJob("ALLOCATE_MEMORY", 4f, () =>
+        Log("Flushing cache... (4s)");
+        StartJob("FLUSH_CACHE", 4f, () =>
         {
             float freed = Mathf.Min(256f, ramCache);
             ramCache -= freed;
             uploadProgress = Mathf.Max(0f, uploadProgress - 3f);
-            SetCooldown("ALLOCATE_MEMORY", 20f);
-            Log($"Memory allocated. Freed {Mathf.RoundToInt(freed)}KB, -3% upload");
+            flushCacheCpuTimer = 10f;
+            SetCooldown("FLUSH_CACHE", 20f);
+            Log($"FLUSH_CACHE: freed {Mathf.RoundToInt(freed)}KB RAM, -3% upload, +30% CPU for 10s");
         });
     }
 
@@ -1107,26 +1253,32 @@ public class GameManager : MonoBehaviour
     {
         float cpuTotal = TotalCpu();
         float cpuPercent = Mathf.Clamp(cpuTotal, 0f, 100f);
+
         if (cpuFill != null)
         {
             cpuFill.style.width = Length.Percent(cpuPercent);
             cpuFill.style.backgroundColor = BarColor(cpuPercent);
         }
+
         if (cpuText != null)
         {
             string suffix = "";
             if (cpuTotal >= 100f) suffix = $"  [MELTDOWN IN {Mathf.Max(0f, cpuMeltdownTime - cpuHeat):F1}s]";
             else if (cpuOverloaded) suffix = "  [OVERLOAD]";
+            if (flushCacheCpuTimer > 0f) suffix += $"  [+CPU {flushCacheCpuTimer:F0}s]";
+            if (uploadCoreSlowTimer > 0f) suffix += $"  [SLOW {uploadCoreSlowTimer:F0}s]";
             cpuText.text = $"{cpuPercent:F0}%{suffix}";
         }
 
         float ramCurrent = RamCurrent;
         float ramPercent = Mathf.Clamp(ramCurrent / RamMax * 100f, 0f, 100f);
+
         if (ramFill != null)
         {
             ramFill.style.width = Length.Percent(ramPercent);
             ramFill.style.backgroundColor = BarColor(ramPercent);
         }
+
         if (ramText != null) ramText.text = $"{(int)ramCurrent} / {(int)RamMax} KB ({(int)ramPercent}%)";
 
         if (uploadFill != null) uploadFill.style.width = Length.Percent(uploadProgress);
@@ -1136,6 +1288,7 @@ public class GameManager : MonoBehaviour
     void UpdateJobsPanel()
     {
         if (jobsText == null) return;
+
         var sb = new StringBuilder();
         sb.Append(uploaderRunning
             ? $"UPLOAD SPEED: {UploadSpeed():F2}%/s"
@@ -1145,13 +1298,17 @@ public class GameManager : MonoBehaviour
         var mods = new List<string>();
         if (scanBonus > 0f) mods.Add($"+{scanBonus * 100f:F0}% route");
         if (firewallActive) mods.Add("-30% FIREWALL");
+        if (quarantineActive) mods.Add("QUARANTINE");
+        if (killerActive) mods.Add("KILLER ACTIVE");
         if (cpuOverloaded) mods.Add("CPU OVERLOAD");
         if (RamPercent >= 80f) mods.Add("-40% LOW RAM");
         if (cryptoActive) mods.Add("CRYPTO");
         if (defragActive) mods.Add("DEFRAG");
         if (bypassActive) mods.Add("BYPASS");
-        sb.Append("\nMODS: ").Append(mods.Count > 0 ? string.Join(", ", mods) : "-");
+        if (uploadCoreSlowTimer > 0f) mods.Add($"SLOW {uploadCoreSlowTimer:F0}s");
+        if (flushCacheCpuTimer > 0f) mods.Add($"+CPU {flushCacheCpuTimer:F0}s");
 
+        sb.Append("\nMODS: ").Append(mods.Count > 0 ? string.Join(", ", mods) : "-");
         sb.Append("\nRUNNING: ");
         if (jobs.Count == 0) sb.Append('-');
         for (int i = 0; i < jobs.Count; i++)
@@ -1159,7 +1316,6 @@ public class GameManager : MonoBehaviour
             if (i > 0) sb.Append(", ");
             sb.Append($"{jobs[i].name} {Mathf.Max(0f, jobs[i].endTime - Time.time):F1}s");
         }
-
         sb.Append("\nCOOLDOWN: ");
         bool any = false;
         foreach (var kv in cooldownEnd)
