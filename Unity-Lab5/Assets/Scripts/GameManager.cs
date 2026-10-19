@@ -9,30 +9,51 @@ public class GameManager : MonoBehaviour
     private class ProcessInfo
     {
         public string name;
-        public int ram;
+
+        // Базовые значения (вокруг них "гуляют" текущие)
+        public float baseRam;
+        public float baseCpu;
+
+        // Текущие значения
+        public float ram;   // KB
+        public float cpu;   // % от всего CPU
+
         public VisualElement item;
-        public Label label;
+        public Label idLabel, nameLabel, cpuLabel, ramLabel;
     }
 
     // === Настройки (видны в инспекторе) ===
-    [SerializeField] private Vector2 spawnIntervalRange = new Vector2(6f, 10f); // для теста реже
+    [Header("Спавн процессов")]
+    [SerializeField] private Vector2 spawnIntervalRange = new Vector2(6f, 10f);
     [SerializeField] private float firstSpawnDelay = 4f;
 
+    [Header("Колебания нагрузки")]
+    [SerializeField] private Vector2 fluctuationIntervalRange = new Vector2(0.5f, 1f);
+    [SerializeField] private float ramStep = 5f;     // макс. шаг изменения RAM (KB) за тик
+    [SerializeField] private float cpuStep = 2f;     // макс. шаг изменения CPU (% ) за тик
+
+    [Header("Перегрузка CPU")]
+    [SerializeField] private float cpuOverloadThreshold = 90f;
+    [SerializeField] private float overloadUploadMultiplier = 0.25f;
+
     // === Игровые переменные ===
-    private float ramCurrent = 200;
-    private float ramMax = 1024;
-    private float uploadProgress = 0;
+    private float ramSystem = 200f;   // память системы вне процессов
+    private float ramMax = 1024f;
+    private float uploadProgress = 0f;
     private bool isGameOver = false;
+    private bool cpuOverloaded = false;
 
-    private float spawnTimer = 0;
+    private float spawnTimer = 0f;
     private float spawnInterval;
+    private float fluctuationTimer = 0f;
+    private float nextFluctuation = 0.7f;
 
-    // Список процессов. Номер на экране = индекс + 1, поэтому при удалении нумерация сама сдвигается
+    // Номер на экране = индекс + 1
     private readonly List<ProcessInfo> processes = new List<ProcessInfo>();
 
     // Фокус и выделение
     private FocusMode focusMode = FocusMode.Input;
-    private int selectedIndex = 0; // запоминается, когда уходим в поле ввода
+    private int selectedIndex = 0;
 
     // Блокировка ввода при ошибке
     private bool isInputBlocked = false;
@@ -44,21 +65,34 @@ public class GameManager : MonoBehaviour
 
     // === UI ===
     private VisualElement root;
-    private VisualElement ramFill;
-    private VisualElement uploadFill;
-    private Label ramText;
-    private Label uploadText;
+    private VisualElement cpuFill, ramFill, uploadFill;
+    private Label cpuText, ramText, uploadText;
     private Label logOutput;
     private Label statusText;
     private ScrollView processList;
     private TextField commandInput;
 
+    // Суммарные значения (считаются из процессов)
+    private float TotalProcessRam
+    {
+        get { float s = 0f; foreach (var p in processes) s += p.ram; return s; }
+    }
+
+    private float TotalProcessCpu
+    {
+        get { float s = 0f; foreach (var p in processes) s += p.cpu; return s; }
+    }
+
+    private float RamCurrent => ramSystem + TotalProcessRam;
+
     void Start()
     {
         root = GetComponent<UIDocument>().rootVisualElement;
 
+        cpuFill = root.Q<VisualElement>("cpu-fill");
         ramFill = root.Q<VisualElement>("ram-fill");
         uploadFill = root.Q<VisualElement>("upload-fill");
+        cpuText = root.Q<Label>("cpu-text");
         ramText = root.Q<Label>("ram-text");
         uploadText = root.Q<Label>("upload-text");
         logOutput = root.Q<Label>("log-output");
@@ -67,9 +101,10 @@ public class GameManager : MonoBehaviour
         commandInput = root.Q<TextField>("command-input");
 
         spawnInterval = firstSpawnDelay;
+        nextFluctuation = Random.Range(fluctuationIntervalRange.x, fluctuationIntervalRange.y);
 
         if (logOutput != null) logOutput.text = "";
-        Log("System initialized. Monitoring RAM...");
+        Log("System initialized. Monitoring RAM and CPU...");
         Log("WARNING: Unauthorized processes detected!");
         Log("Type 'HELP' for available commands.");
         UpdateUI();
@@ -96,7 +131,6 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // TAB: переключение между полем ввода и списком
         if (evt.keyCode == KeyCode.Tab)
         {
             Consume(evt);
@@ -108,7 +142,7 @@ public class GameManager : MonoBehaviour
         {
             if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
             {
-                Consume(evt); // TextField не должен сам обрабатывать Enter
+                Consume(evt);
                 SubmitCommand();
             }
         }
@@ -127,7 +161,7 @@ public class GameManager : MonoBehaviour
             else if (evt.keyCode == KeyCode.LeftArrow || evt.keyCode == KeyCode.RightArrow
                      || evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
             {
-                Consume(evt); // чтобы стандартная навигация не сдвинула фокус
+                Consume(evt);
             }
         }
     }
@@ -153,7 +187,7 @@ public class GameManager : MonoBehaviour
         UpdateSelectionVisual();
     }
 
-    // Страховка: если фокус оказался не там (клик мышью, навигация), возвращаем его
+    // Страховка: если фокус оказался не там, возвращаем его
     void EnsureFocus()
     {
         if (root == null || commandInput == null || processList == null) return;
@@ -186,7 +220,7 @@ public class GameManager : MonoBehaviour
             processList.ScrollTo(processes[selectedIndex].item);
     }
 
-    // ================== ПРОЦЕССЫ ==================
+    // ================== UPDATE ==================
 
     void Update()
     {
@@ -201,64 +235,150 @@ public class GameManager : MonoBehaviour
                 commandInput.RemoveFromClassList("input-error");
                 commandInput.value = "";
             }
-            // Игра НЕ ставится на паузу, RAM продолжает расти
+            // Игра НЕ ставится на паузу
         }
 
         EnsureFocus();
 
         if (isGameOver) return;
 
+        // Спавн
         spawnTimer += Time.deltaTime;
         if (spawnTimer >= spawnInterval)
         {
             SpawnProcess();
-            spawnTimer = 0;
+            spawnTimer = 0f;
             spawnInterval = Random.Range(spawnIntervalRange.x, spawnIntervalRange.y);
         }
 
-        if (ramCurrent >= ramMax)
+        // Колебания нагрузки
+        fluctuationTimer += Time.deltaTime;
+        if (fluctuationTimer >= nextFluctuation)
         {
-            ramCurrent = ramMax;
+            fluctuationTimer = 0f;
+            nextFluctuation = Random.Range(fluctuationIntervalRange.x, fluctuationIntervalRange.y);
+            FluctuateProcesses();
+        }
+
+        // Перегрузка CPU: штраф к скорости загрузки
+        float cpuTotal = TotalProcessCpu;
+        bool overloadedNow = cpuTotal >= cpuOverloadThreshold;
+        if (overloadedNow != cpuOverloaded)
+        {
+            cpuOverloaded = overloadedNow;
+            Log(cpuOverloaded
+                ? "WARNING: CPU OVERLOAD! Upload slowed down."
+                : "CPU load back to normal.");
+        }
+
+        if (uploadProgress < 100f)
+        {
+            float speed = cpuOverloaded ? overloadUploadMultiplier : 1f;
+            uploadProgress = Mathf.Min(100f, uploadProgress + Time.deltaTime * 2f * speed);
+        }
+
+        // Поражение по памяти
+        if (RamCurrent >= ramMax)
+        {
+            ramSystem = Mathf.Max(0f, ramMax - TotalProcessRam);
             TriggerGameOver("OUT OF MEMORY");
         }
 
         UpdateUI();
     }
 
+    // ================== ПРОЦЕССЫ ==================
+
     void SpawnProcess()
     {
-        int ramCost = Random.Range(50, 150);
+        float ramCost = Random.Range(50f, 150f);
+        float cpuCost = Random.Range(5f, 30f);
+
+        // Профили: часть процессов "тяжёлая" по одному ресурсу, часть сбалансирована
+        int profile = Random.Range(0, 3);
+        if (profile == 0) { ramCost *= 1.4f; cpuCost *= 0.4f; }      // жрёт память
+        else if (profile == 1) { ramCost *= 0.5f; cpuCost *= 1.5f; } // жрёт процессор
 
         // Уникальное имя, чтобы KILL -n работал однозначно
         string procName;
         do { procName = $"PROC_{Random.Range(1000, 9999)}.exe"; }
         while (processes.Exists(p => p.name == procName));
 
-        ramCurrent += ramCost;
-
         var item = new VisualElement();
         item.AddToClassList("process-item");
 
-        var label = new Label();
-        label.AddToClassList("process-label");
-        item.Add(label);
+        var info = new ProcessInfo
+        {
+            name = procName,
+            baseRam = ramCost,
+            baseCpu = cpuCost,
+            ram = ramCost,
+            cpu = cpuCost,
+            item = item,
+            idLabel = MakeCell(item, "col-id"),
+            nameLabel = MakeCell(item, "col-name"),
+            cpuLabel = MakeCell(item, "col-cpu"),
+            ramLabel = MakeCell(item, "col-ram")
+        };
 
         processList.Add(item);
-        processes.Add(new ProcessInfo { name = procName, ram = ramCost, item = item, label = label });
+        processes.Add(info);
 
-        RefreshProcessLabels();
+        NormalizeCpu();
+        RefreshProcessTable();
         UpdateSelectionVisual();
 
-        Log($"New threat detected: {procName} (+{ramCost}KB RAM)");
+        Log($"New threat detected: {procName} (+{Mathf.RoundToInt(ramCost)}KB RAM, {info.cpu:F0}% CPU)");
     }
 
-    // Перенумерация: номер = позиция в списке
-    void RefreshProcessLabels()
+    static Label MakeCell(VisualElement row, string columnClass)
     {
+        var label = new Label();
+        label.AddToClassList("process-label");
+        label.AddToClassList(columnClass);
+        row.Add(label);
+        return label;
+    }
+
+    // Случайное блуждание вокруг базовых значений
+    void FluctuateProcesses()
+    {
+        foreach (var p in processes)
+        {
+            p.ram = Mathf.Clamp(p.ram + Random.Range(-ramStep, ramStep),
+                                p.baseRam * 0.7f, p.baseRam * 1.3f);
+
+            p.cpu = Mathf.Clamp(p.cpu + Random.Range(-cpuStep, cpuStep),
+                                Mathf.Max(0.5f, p.baseCpu * 0.5f), p.baseCpu * 1.5f);
+        }
+
+        NormalizeCpu();
+        RefreshProcessTable();
+    }
+
+    // Сумма CPU по процессам не может быть больше 100%
+    void NormalizeCpu()
+    {
+        float sum = TotalProcessCpu;
+        if (sum <= 100f) return;
+
+        float k = 100f / sum;
+        foreach (var p in processes) p.cpu *= k;
+    }
+
+    // Пересчёт номеров и процентов
+    void RefreshProcessTable()
+    {
+        // Сумма RAM процессов ограничена ramMax (иначе игра уже закончилась)
+        float ramBase = Mathf.Max(ramMax, TotalProcessRam);
+
         for (int i = 0; i < processes.Count; i++)
         {
             var p = processes[i];
-            p.label.text = $"[{i + 1}] {p.name} ... {p.ram}KB [CMD: KILL -i {i + 1}]";
+            p.idLabel.text = (i + 1).ToString();
+            p.nameLabel.text = p.name;
+            p.cpuLabel.text = $"{p.cpu:F1}%";
+            p.ramLabel.text = $"{p.ram / ramBase * 100f:F1}%";
         }
     }
 
@@ -266,18 +386,15 @@ public class GameManager : MonoBehaviour
     {
         var proc = processes[index];
 
-        ramCurrent -= proc.ram;
-        if (ramCurrent < 0) ramCurrent = 0;
-
         processList.Remove(proc.item);
         processes.RemoveAt(index);
 
         selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, processes.Count - 1));
 
-        RefreshProcessLabels();
+        RefreshProcessTable();
         UpdateSelectionVisual();
 
-        Log($"Process {proc.name} terminated. Freed {proc.ram}KB.");
+        Log($"Process {proc.name} terminated. Freed {Mathf.RoundToInt(proc.ram)}KB, {proc.cpu:F0}% CPU.");
     }
 
     void KillAll()
@@ -326,17 +443,15 @@ public class GameManager : MonoBehaviour
                 break;
 
             case "UPLOAD_CORE":
-                uploadProgress += 5;
-                ramCurrent += 128;
+                uploadProgress = Mathf.Min(100f, uploadProgress + 5f);
+                ramSystem += 128f;
                 Log("Uploading core... +5% progress, +128KB RAM");
                 break;
 
             case "ALLOCATE_MEMORY":
-                ramCurrent -= 256;
-                if (ramCurrent < 0) ramCurrent = 0;
-                uploadProgress -= 3;
-                if (uploadProgress < 0) uploadProgress = 0;
-                Log("Memory allocated. -256KB RAM, -3% upload");
+                ramSystem = Mathf.Max(0f, ramSystem - 256f);
+                uploadProgress = Mathf.Max(0f, uploadProgress - 3f);
+                Log("Memory allocated. -256KB system RAM, -3% upload");
                 break;
 
             case "KILL_ALL":
@@ -355,7 +470,7 @@ public class GameManager : MonoBehaviour
 
     void HandleKill(string[] parts)
     {
-        // Ожидаем: KILL -I <число>  или  KILL -N <имя>  (команда уже в верхнем регистре)
+        // KILL -I <число>  или  KILL -N <имя>  (команда уже в верхнем регистре)
         if (parts.Length < 3)
         {
             TriggerInvalidCommand();
@@ -393,28 +508,42 @@ public class GameManager : MonoBehaviour
 
         Log("ERROR: INVALID COMMAND");
 
-        commandInput.isReadOnly = true;               // фокус остаётся, но печатать нельзя
-        commandInput.AddToClassList("input-error");   // красный цвет задаётся в USS
+        commandInput.isReadOnly = true;
+        commandInput.AddToClassList("input-error");
         commandInput.value = "INVALID COMMAND";
     }
 
     // ================== UI ==================
 
+    static Color BarColor(float percent)
+    {
+        if (percent < 60f) return new Color(0f, 1f, 0f);
+        if (percent < 85f) return new Color(1f, 1f, 0f);
+        return new Color(1f, 0f, 0f);
+    }
+
     void UpdateUI()
     {
-        float ramPercent = (ramCurrent / ramMax) * 100f;
+        // CPU
+        float cpuPercent = Mathf.Clamp(TotalProcessCpu, 0f, 100f);
+        if (cpuFill != null)
+        {
+            cpuFill.style.width = Length.Percent(cpuPercent);
+            cpuFill.style.backgroundColor = BarColor(cpuPercent);
+        }
+        if (cpuText != null) cpuText.text = $"{cpuPercent:F0}%" + (cpuOverloaded ? "  [OVERLOAD]" : "");
 
+        // RAM
+        float ramCurrent = RamCurrent;
+        float ramPercent = Mathf.Clamp(ramCurrent / ramMax * 100f, 0f, 100f);
         if (ramFill != null)
         {
             ramFill.style.width = Length.Percent(ramPercent);
-            if (ramPercent < 60) ramFill.style.backgroundColor = new Color(0, 1, 0);
-            else if (ramPercent < 85) ramFill.style.backgroundColor = new Color(1, 1, 0);
-            else ramFill.style.backgroundColor = new Color(1, 0, 0);
+            ramFill.style.backgroundColor = BarColor(ramPercent);
         }
-
         if (ramText != null) ramText.text = $"{(int)ramCurrent} / {(int)ramMax} KB ({(int)ramPercent}%)";
 
-        if (uploadProgress < 100) uploadProgress += Time.deltaTime * 2;
+        // Upload
         if (uploadFill != null) uploadFill.style.width = Length.Percent(uploadProgress);
         if (uploadText != null) uploadText.text = $"{(int)uploadProgress}%";
     }

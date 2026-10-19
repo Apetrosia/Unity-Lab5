@@ -61,10 +61,6 @@
     padding-bottom: 0.5%;
 }
 
-.process-list {
-    flex-grow: 1;
-}
-
 .bar-container {
     width: 100%;
     height: 20px;
@@ -108,12 +104,16 @@
     overflow: hidden;
 }
 
+/* ================== ПОЛЕ ВВОДА ================== */
+
 #command-input {
     flex-grow: 1;
-    height: 20px;               /* высота строки, как у метки */
+    height: 20px;
     margin: 0;
     padding: 0;
     background-color: #000000;
+    --unity-cursor-color: #00ff00;
+    --unity-selection-color: rgba(0, 255, 0, 0.35);
 }
 
 #command-input > #unity-text-input {
@@ -123,16 +123,16 @@
     background-color: #000000;
     border-width: 0;
     border-radius: 0;
-    font-size: 16px;            /* как у метки "C:\PROMETHEUS>" */
+    font-size: 16px;
     color: #00ff00;
     -unity-text-align: upper-left;
 }
 
 #command-input .unity-text-element {
-    font-size: 16px;                  /* тот же размер, что у "C:\PROMETHEUS>" */
+    font-size: 16px;
     color: #00ff00;
     background-color: rgba(0, 0, 0, 0);
-    height: 20px;                     /* фиксированная высота строки */
+    height: 20px;
     margin: 0;
     padding: 0;
     -unity-text-align: upper-left;
@@ -148,15 +148,35 @@
     color: #00ff00;
 }
 
-/* Цвет курсора и выделения (работает как стиль USS в Unity 2022.1+) */
-#command-input {
-    --unity-cursor-color: #00ff00;
-    --unity-selection-color: rgba(0, 255, 0, 0.35);
+/* Ошибка в поле ввода */
+#command-input.input-error > #unity-text-input {
+    color: #ff3333;
 }
 
-    .process-item {
+/* ================== ТАБЛИЦА ПРОЦЕССОВ ================== */
+
+.process-list {
+    flex-grow: 1;
+}
+
+/* Заголовок таблицы */
+.process-header {
+    flex-direction: row;
     padding: 5px;
-    margin-bottom: 5px;
+    border-bottom-width: 1px;
+    border-bottom-color: #00ff00;
+    margin-bottom: 3px;
+}
+
+.process-header .process-label {
+    color: #00cc00;
+}
+
+/* Строка процесса: ряд ячеек */
+.process-item {
+    flex-direction: row;
+    padding: 5px;
+    margin-bottom: 2px;
     border-bottom-width: 1px;
     border-bottom-color: #004400;
 }
@@ -164,7 +184,16 @@
 .process-label {
     font-size: 14px;
     color: #00ff00;
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
 }
+
+/* Ширины колонок (одинаковые у заголовка и строк) */
+.col-id   { width: 40px; flex-shrink: 0; }
+.col-name { flex-grow: 1; flex-shrink: 1; }
+.col-cpu  { width: 70px; flex-shrink: 0; -unity-text-align: middle-right; }
+.col-ram  { width: 70px; flex-shrink: 0; -unity-text-align: middle-right; }
 
 /* Выделенный процесс: лаймовый фон, чёрный текст */
 .process-item--selected {
@@ -173,11 +202,6 @@
 
 .process-item--selected .process-label {
     color: #000000;
-}
-
-/* Ошибка в поле ввода */
-#command-input.input-error > #unity-text-input {
-    color: #ff3333;
 }
 
 /* Скрываем скроллбар, но оставляем прокрутку */
