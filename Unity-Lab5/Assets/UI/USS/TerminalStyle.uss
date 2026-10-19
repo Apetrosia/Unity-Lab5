@@ -65,11 +65,6 @@
     flex-grow: 1;
 }
 
-.process-item {
-    font-size: 14px;
-    margin-bottom: 0.5%;
-}
-
 .bar-container {
     width: 100%;
     height: 20px;
@@ -159,16 +154,30 @@
     --unity-selection-color: rgba(0, 255, 0, 0.35);
 }
 
-    /* Стили для отдельного процесса в списке */
-.process-item {
+    .process-item {
     padding: 5px;
     margin-bottom: 5px;
-    border-bottom: 1px dashed #004400;
-    cursor: pointer; /* Показывает руку при наведении */
+    border-bottom-width: 1px;
+    border-bottom-color: #004400;
 }
 
-.process-item:hover {
-    background-color: #003300; /* Подсветка при наведении */
+.process-label {
+    font-size: 14px;
+    color: #00ff00;
+}
+
+/* Выделенный процесс: лаймовый фон, чёрный текст */
+.process-item--selected {
+    background-color: #00ff00;
+}
+
+.process-item--selected .process-label {
+    color: #000000;
+}
+
+/* Ошибка в поле ввода */
+#command-input.input-error > #unity-text-input {
+    color: #ff3333;
 }
 
 /* Скрываем скроллбар, но оставляем прокрутку */
