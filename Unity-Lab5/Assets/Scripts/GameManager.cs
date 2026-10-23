@@ -279,7 +279,7 @@ public class GameManager : MonoBehaviour
         processList.focusable = true;
         commandInput.focusable = true;
         
-        // НОВОЕ: Подписка на изменение текста для фильтрации ввода
+        // Подписка на изменение текста для фильтрации ввода
         commandInput.RegisterCallback<ChangeEvent<string>>(OnCommandInputChange);
         
         root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
@@ -1095,7 +1095,7 @@ public class GameManager : MonoBehaviour
         {
             case "HELP":
                 Log("RUN <UPLOADER|CRYPTO|DEFRAG|BYPASS> - launch your programs");
-                Log("KILL -I <#> | KILL -N <name>"); // KILL_ALL удалён
+                Log("KILL -I <#> | KILL -N <name>");
                 Log("SCAN_NETWORK - +10% upload speed, reveals hidden");
                 Log("UPLOAD_CORE - +5% upload, +128KB RAM, -50% CPU heat, -50% speed 10s");
                 Log("FLUSH_CACHE - clear 256KB RAM, -3% upload, +30% CPU 10s");
@@ -1122,9 +1122,6 @@ public class GameManager : MonoBehaviour
             case "ALLOCATE_MEMORY":
                 CmdFlushCache();
                 break;
-            // case "KILL_ALL": Удалено по запросу
-            //     CmdKillAll();
-            //     break;
             case "KILL":
                 HandleKill(parts);
                 break;
@@ -1239,8 +1236,6 @@ public class GameManager : MonoBehaviour
             Log($"FLUSH_CACHE: freed {Mathf.RoundToInt(freed)}KB RAM, -3% upload, +30% CPU for 10s");
         });
     }
-
-    // Метод CmdKillAll() полностью удалён
 
     void HandleKill(string[] parts)
     {
